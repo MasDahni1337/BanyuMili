@@ -173,7 +173,7 @@ class Service {
         const {
             table,
             values
-        } = this.preparedData(data);
+        } = this.prepareData(data);
 
         if (this.timestamps) {
             const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
