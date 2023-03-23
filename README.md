@@ -192,12 +192,12 @@ class UsersModel extends Model{
     }
 
    update(id, data) {
-        this.service.where('id', id);
+        this.where('id', id);
         return this.update(data);
     }
 
    delete(id) {
-        this.service.where('id', id);
+        this.where('id', id);
         return this.delete();
     }
     
