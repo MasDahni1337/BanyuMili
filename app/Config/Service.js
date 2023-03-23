@@ -1,11 +1,10 @@
-class Service {
+const {
+    Sequelize
+} = require('sequelize');
 
-    /**
-     * Create a new Service instance.
-     * @param {Object} pool - The database connection pool.
-     */
-    constructor(pool) {
-        this.pool = pool;
+class Service {
+    constructor(options) {
+        this.sequelize = new Sequelize(options.database, options.username, options.password, options);
         this.options = {};
         this.allowedFields = [];
         this.primaryKey = 'id';
@@ -13,72 +12,36 @@ class Service {
         this.timestamps = false;
         this.softDelete = false;
     }
-    /**
-     * Set the primary key for the table.
-     * @param {string} key - The primary key column name.
-     */
+
     setPrimaryKey(key) {
         this.primaryKey = key;
     }
 
-    /**
-     * Set the allowed fields for the table.
-     * @param {string[]} fields - The allowed fields.
-     */
     setAllowedFields(fields) {
         this.allowedFields = fields;
     }
 
-    /**
-     * Enable or disable timestamps for the table.
-     * @param {boolean} enabled - Whether timestamps are enabled.
-     */
     setTimestamps(enabled) {
         this.timestamps = enabled;
     }
 
-    /**
-     * Enable or disable softdelete .
-     * @param {boolean} enabled.
-     */
-    setSoftDelete(enabled){
-        this.softDelete = enabled
+    setSoftDelete(enabled) {
+        this.softDelete = enabled;
     }
 
-    /**
-     * Set the return type for the query.
-     * @param {string} type - The return type.
-     */
     setReturnType(type) {
         this.returnType = type;
     }
 
-    /**
-     * Set the table name for the query.
-     * @param {string} name - The table name.
-     */
     setTable(name) {
         this.options.table = name;
     }
 
-
-
-    /**
-     * Set the columns to be selected.
-     * @param {...string} columns - The column names to be selected.
-     * @returns {Service} - The Service instance.
-     */
     select(...columns) {
         this.options.columns = columns;
         return this;
     }
 
-    /**
-     * Add a WHERE clause to the query.
-     * @param {string} column - The column to filter by.
-     * @param {*} value - The value to filter by.
-     * @returns {Service} - The Service instance.
-     */
     where(column, value) {
         if (!this.options.where) {
             this.options.where = {};
@@ -86,12 +49,7 @@ class Service {
         this.options.where[column] = value;
         return this;
     }
-    /**
-     * Adds a join clause to the query.
-     * @param {string} table - The name of the table to join.
-     * @param {string} condition - The join condition.
-     * @returns {Service} - The Service instance.
-     */
+
     join(table, condition) {
         const joinClause = `JOIN ${table} ON ${condition}`;
         if (!this.options.join) {
@@ -100,30 +58,17 @@ class Service {
         this.options.join += ` ${joinClause}`;
         return this;
     }
-    /**
-     * Adds an order by clause to the query.
-     * @param {string} order - The order by clause.
-     * @returns {QueryBuilder} - The QueryBuilder instance.
-     */
+
     orderBy(order) {
         this.options.orderBy = order;
         return this;
     }
-    /**
-     * Adds a group by clause to the query.
-     * @param {string} group - The group by clause.
-     * @returns {QueryBuilder} - The QueryBuilder instance.
-     */
+
     groupBy(group) {
         this.options.groupBy = group;
         return this;
     }
-    /**
-     * Adds a select max clause to the query.
-     * @param {string} column - The name of the column to select the max value from.
-     * @param {string} alias - The alias for the max value column.
-     * @returns {QueryBuilder} - The QueryBuilder instance.
-     */
+
     selectMax(column, alias) {
         const max = `MAX(${column})`;
         this.options.columns = [
@@ -131,18 +76,12 @@ class Service {
         ];
         return this;
     }
-    /**
-     * Executes the query and returns a single record.
-     * @returns {Promise<object>} - A Promise that resolves to a single record.
-     */
+
     async single() {
         const [record] = await this.getResult();
         return record;
     }
-    /**
-     * Executes the query and returns the result as an array of records.
-     * @returns {Promise<object[]>} - A Promise that resolves to an array of records.
-     */
+
     async getResult() {
         let query = `SELECT ${this.options.columns ? this.options.columns.join(', ') : '*'} FROM ${this.options.table}`;
         if (this.options.join) {
@@ -150,7 +89,7 @@ class Service {
         }
         if (this.options.where) {
             const whereClause = Object.keys(this.options.where)
-                .map(key => `${key} = ${this.pool.escape(this.options.where[key])}`)
+                .map(key => `${key} = ${this.sequelize.escape(this.options.where[key])}`)
                 .join(' AND ');
             query += ` WHERE ${whereClause}`;
         }
@@ -160,15 +99,19 @@ class Service {
         if (this.options.orderBy) {
             query += ` ORDER BY ${this.options.orderBy}`;
         }
-        const [records] = await this.pool.query(query);
-        this.options.join = '';
-        return records;
+
+        try {
+            const records = await this.sequelize.query(query, {
+                type: Sequelize.QueryTypes.SELECT
+            });
+            return records;
+        } catch (error) {
+            console.log(error);
+        } finally {
+            this.options.join = '';
+        }
     }
-    /**
-     * Inserts a new record into the database.
-     * @param {object} data - The data to insert.
-     * @returns {Promise<object>} - A Promise that resolves to the inserted record.
-     */
+
     async save(data) {
         const {
             table,
@@ -189,94 +132,112 @@ class Service {
         }
 
         const query = `INSERT INTO ${table} SET ?`;
-        const [result] = await this.pool.query(query, filteredData);
+        try {
+            const result = await this.sequelize.query(query, {
+                replacements: [filteredData],
+                type: Sequelize.QueryTypes.INSERT
+            });
 
-        if (this.returnType === 'id') {
-            return {
-                id: result.insertId
-            };
-        } else if (this.returnType === 'array') {
-            const insertedRecord = await this.select('*').where(this.primaryKey, result.insertId).toArray();
-            return insertedRecord;
-        } else {
-            const insertedRecord = await this.select('*').where(this.primaryKey, result.insertId).single();
-            return insertedRecord;
+            if (this.returnType === 'id') {
+                return {
+                    id: result[0]
+                };
+            } else {
+                const [record] = await this.getResult();
+                return record;
+            }
+        } catch (error) {
+            console.log(error);
         }
     }
-    /**
-     * Updates an existing record in the database.
-     * @param {object} data - The data to update.
-     * @returns {Promise<object>} - A Promise that resolves to the result of the update.
-     */
-    async update(data) {
+
+    async update(id, data) {
         const {
             table,
             values
-        } = this.prepareUpdatedData(data);
+        } = this.prepareData(data);
         if (this.timestamps) {
-            data.updated_at = new Date().toISOString().slice(0, 19).replace('T', ' ');
-        }
-        let query = `UPDATE ${table} SET ?`;
-        if (this.options.where) {
-            const whereClause = Object.keys(this.options.where)
-                .map(key => `${key} = ${this.pool.escape(this.options.where[key])}`)
-                .join(' AND ');
-            query += ` WHERE ${whereClause}`;
-        }
-        const [result] = await this.pool.query(query, values);
-        return {
-            affectedRows: result.affectedRows
-        };
-    }
-    /**
-     * Deletes records from the database.
-     * @returns {Promise<object>} - A Promise that resolves to the result of the delete operation.
-     */
-    async delete() {
-        let query;
-        if (this.softDelete) {
             const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-            query = `UPDATE ${this.options.table} SET deleted_at = ? WHERE ${this.primaryKey} = ?`;
-            await this.pool.query(query, [now, id]);
-        } else {
-            query = `DELETE FROM ${this.options.table} WHERE ${this.primaryKey} = ?`;
-            await this.pool.query(query, [id]);
+            values.push(now);
+            this.allowedFields.push('updated_at');
         }
-        const [result] = await this.pool.query(query);
-        return {
-            affectedRows: result.affectedRows
-        };
+
+        const filteredData = {};
+        for (const field of this.allowedFields) {
+            if (field in data) {
+                filteredData[field] = data[field];
+            }
+        }
+
+        const setClause = Object.keys(filteredData)
+            .map(key => `${key} = ${this.sequelize.escape(filteredData[key])}`)
+            .join(', ');
+
+        const query = `UPDATE ${table} SET ${setClause} WHERE ${this.primaryKey} = ${this.sequelize.escape(id)}`;
+
+        try {
+            const result = await this.sequelize.query(query, {
+                type: Sequelize.QueryTypes.UPDATE
+            });
+            if (result[0] === 0) {
+                throw new Error(`Record with id ${id} not found`);
+            }
+            if (this.returnType === 'id') {
+                return {
+                    id
+                };
+            } else {
+                const [record] = await this.getResult();
+                return record;
+            }
+        } catch (error) {
+            console.log(error);
+        }
     }
-    /**
-     * Prepares the data for insertion into the database.
-     * @param {object} data - The data to prepare.
-     * @returns {object} - An object containing the table name, column names, values, and placeholders.
-     */
+
+    async delete(id) {
+        const query = `DELETE FROM ${this.options.table} WHERE ${this.primaryKey} = ${this.sequelize.escape(id)}`;
+        try {
+            const result = await this.sequelize.query(query, {
+                type: Sequelize.QueryTypes.DELETE
+            });
+            if (result[0] === 0) {
+                throw new Error(`Record with id ${id} not found`);
+            }
+            if (this.softDelete) {
+                await this.update(id, {
+                    deleted_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+                });
+            }
+            if (this.returnType === 'id') {
+                return {
+                    id
+                };
+            } else {
+                const [record] = await this.getResult();
+                return record;
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
     prepareData(data) {
-        const table = this.options.table;
-        const columns = Object.keys(data);
-        const values = columns.map(column => data[column]);
-        const placeholders = Array(columns.length).fill('?').join(', ');
+        let table;
+        let values = [];
+        if (this.options.table) {
+            table = this.options.table;
+        } else {
+            throw new Error('Table name not set');
+        }
+
+        for (const field of Object.keys(data)) {
+            values.push(data[field]);
+        }
+
         return {
             table,
-            columns,
-            values,
-            placeholders
-        };
-    }
-    /**
-     * Prepares the data for updating a record in the database.
-     * @param {object} data - The data to prepare.
-     * @returns {object} - An object containing the table name, values, and set clause.
-     */
-    prepareUpdatedData(data) {
-        const table = this.options.table;
-        const setClause = Object.keys(data).map(key => `${key} = ?`).join(', ');
-        const values = Object.values(data);
-        return {
-            table,
-            values,
-            setClause
+            values
         };
     }
 }
