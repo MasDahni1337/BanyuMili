@@ -40,6 +40,7 @@ To create a model, extend the Model class and configure it using the following m
 - setAllowedFields(fields): set an array of allowed fields for the table
 - setReturnType(type): set the return type for queries ('object' or 'array')
 - setTimestamps(bool): enable/disable automatic timestamp fields ('created_at' and 'updated_at')
+- setSoftDelete(bool): enable/disable automatic soft delete
 
 example
 ```javascript
