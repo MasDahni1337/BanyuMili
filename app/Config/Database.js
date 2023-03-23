@@ -13,21 +13,20 @@ class Database extends Service {
    */
   constructor() {
     /**
-     * The MySQL database connection pool.
      * change host with your host
      * change user with your username mysql
      * change password with your password mysql
      * change database with your database
      * @type {Object}
      */
-    const pool = mysql.createPool({
-      connectionLimit: 10,
+    const options = {
+      database: 'paymentGateway',
+      username: 'dahni',
+      password: '1',
       host: 'localhost',
-      user: 'username',
-      password: 'password',
-      database: 'database'
-    });
-    super(pool);
+      dialect: 'mysql'
+    };
+    super(options);
   }
 }
 
