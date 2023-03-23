@@ -16,7 +16,7 @@ class Routes extends App {
   }
   /**
    * Defines the routes for the API.
-   * @returns {Router} An instance of the Express router containing the defined routes.
+   * @returns {Routes} An instance of the Express router containing the defined routes.
    */
   defineRoutes() {
     const routes = express.Router();
