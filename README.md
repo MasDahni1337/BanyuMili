@@ -187,16 +187,16 @@ class UsersModel extends Model{
         return hasil;
     }
 
-   save(data) {
+   simpan(data) {
         return this.save(data);
     }
 
-   update(id, data) {
+   ubah(id, data) {
         this.where('id', id);
         return this.update(data);
     }
 
-   delete(id) {
+   hapus(id) {
         this.where('id', id);
         return this.delete();
     }
