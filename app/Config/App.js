@@ -15,6 +15,7 @@ class App {
     this.loadConfig();
     this.loadHelper();
     this.loadLibraries();
+    this.loadFilters();
   }
   /**
    * Loads all the controllers from the Controllers directory and adds them to the App instance.
@@ -70,7 +71,7 @@ class App {
     });
   }
   /**
-   * Loads all the helper functions from the Helpers directory and adds them to the App instance.
+   * Loads all the helper functions from the Libraries directory and adds them to the App instance.
    */
   loadLibraries(){
     const libraryDir = path.resolve(__dirname, "..", "Libraries");
@@ -79,6 +80,19 @@ class App {
         const library = require(path.join(libraryDir, file));
         const libraryName = path.basename(file, ".js");
         this[libraryName] = library;
+      }
+    });
+  }
+   /**
+   * Loads all the helper functions from the Filters directory and adds them to the App instance.
+   */
+  loadFilters(){
+    const filterDir = path.resolve(__dirname, "..", "Filters");
+    fs.readdirSync(filterDir).forEach((file) => {
+      if (file.endsWith(".js")) {
+        const filter = require(path.join(filterDir, file));
+        const filterName = path.basename(file, ".js");
+        this[filterName] = filter;
       }
     });
   }
