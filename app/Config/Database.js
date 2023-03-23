@@ -20,9 +20,9 @@ class Database extends Service {
      * @type {Object}
      */
     const options = {
-      database: 'paymentGateway',
-      username: 'dahni',
-      password: '1',
+      database: 'database',
+      username: 'username',
+      password: 'password',
       host: 'localhost',
       dialect: 'mysql'
     };
