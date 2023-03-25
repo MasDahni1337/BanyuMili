@@ -1,8 +1,15 @@
 const {
     Sequelize
 } = require('sequelize');
-
+/**
+ * A service class for building and executing SQL queries using Sequelize with the BanyuMili framework.
+ * @class
+ */
 class Service {
+     /**
+     * Create a new Service instance.
+     * @param {Object} options - The database connection options.
+     */
     constructor(options) {
         this.sequelize = new Sequelize(options.database, options.username, options.password, options);
         this.options = {};
@@ -13,35 +20,71 @@ class Service {
         this.softDelete = false;
     }
 
+    /**
+     * Set the primary key for the table.
+     * @param {string} key - The primary key column name.
+     */
+
     setPrimaryKey(key) {
         this.primaryKey = key;
     }
 
+    /**
+     * Set the allowed fields for the table.
+     * @param {string[]} fields - The allowed fields.
+     */
     setAllowedFields(fields) {
         this.allowedFields = fields;
     }
 
+    /**
+     * Enable or disable timestamps for the table.
+     * @param {boolean} enabled - Whether timestamps are enabled.
+     */
     setTimestamps(enabled) {
         this.timestamps = enabled;
     }
 
+     /**
+     * Enable or disable softdelete .
+     * @param {boolean} enabled.
+     */
     setSoftDelete(enabled) {
         this.softDelete = enabled;
     }
 
+    /**
+     * Set the return type for the query.
+     * @param {string} type - The return type.
+     */
     setReturnType(type) {
         this.returnType = type;
     }
 
+    /**
+     * Set the table name for the query.
+     * @param {string} name - The table name.
+     */
     setTable(name) {
         this.options.table = name;
     }
 
+    /**
+     * Set the columns to be selected.
+     * @param {...string} columns - The column names to be selected.
+     * @returns {Service} - The Service instance.
+     */
     select(...columns) {
         this.options.columns = columns;
         return this;
     }
 
+    /**
+     * Add a WHERE clause to the query.
+     * @param {string} column - The column to filter by.
+     * @param {*} value - The value to filter by.
+     * @returns {Service} - The Service instance.
+     */
     where(column, value) {
         if (!this.options.where) {
             this.options.where = {};
@@ -49,6 +92,13 @@ class Service {
         this.options.where[column] = value;
         return this;
     }
+
+      /**
+     * Adds a join clause to the query.
+     * @param {string} table - The name of the table to join.
+     * @param {string} condition - The join condition.
+     * @returns {Service} - The Service instance.
+     */
     join(table, condition) {
         const joinClause = `JOIN ${table} ON ${condition}`;
         if (!this.options.join) {
@@ -58,16 +108,32 @@ class Service {
         return this;
     }
 
+     /**
+     * Adds an order by clause to the query.
+     * @param {string} order - The order by clause.
+     * @returns {QueryBuilder} - The QueryBuilder instance.
+     */
     orderBy(order) {
         this.options.orderBy = order;
         return this;
     }
 
+    /**
+     * Adds a group by clause to the query.
+     * @param {string} group - The group by clause.
+     * @returns {QueryBuilder} - The QueryBuilder instance.
+     */
     groupBy(group) {
         this.options.groupBy = group;
         return this;
     }
 
+     /**
+     * Adds a select max clause to the query.
+     * @param {string} column - The name of the column to select the max value from.
+     * @param {string} alias - The alias for the max value column.
+     * @returns {QueryBuilder} - The QueryBuilder instance.
+     */
     selectMax(column, alias) {
         const max = `MAX(${column})`;
         this.options.columns = [
@@ -76,11 +142,19 @@ class Service {
         return this;
     }
 
+    /**
+     * Executes the query and returns a single record.
+     * @returns {Promise<object>} - A Promise that resolves to a single record.
+     */
     async single() {
         const [record] = await this.getResult();
         return record;
     }
 
+     /**
+     * Executes the querys.
+     * @returns {Promise<object[]>}.
+     */
     async query(sql, replacements = []) {
         try {
             const records = await this.sequelize.query(sql, {
@@ -93,6 +167,10 @@ class Service {
         }
     }
 
+     /**
+     * Executes the query and returns the result as an array of records.
+     * @returns {Promise<object[]>} - A Promise that resolves to an array of records.
+     */
     async getResult() {
         const columns = this.options.columns ? this.options.columns.join(', ') : '*';
         const table = this.options.table;
@@ -131,6 +209,11 @@ class Service {
         }
     }
 
+    /**
+     * Inserts a new record into the database.
+     * @param {object} data - The data to insert.
+     * @returns {Promise<object>} - A Promise that resolves to the inserted record.
+     */
     async save(data) {
         const {
             table,
@@ -170,6 +253,11 @@ class Service {
         }
     }
 
+     /**
+     * Updates an existing record in the database.
+     * @param {object} data - The data to update.
+     * @returns {Promise<object>} - A Promise that resolves to the result of the update.
+     */
     async update(id, data) {
         const {
             table,
@@ -215,7 +303,10 @@ class Service {
         }
     }
 
-
+    /**
+     * Deletes records from the database.
+     * @returns {Promise<object>} - A Promise that resolves to the result of the delete operation.
+     */
     async delete(id) {
         const query = `DELETE FROM ${this.options.table} WHERE ${this.primaryKey} = ${this.sequelize.escape(id)}`;
         try {
@@ -243,7 +334,11 @@ class Service {
             throw error;
         }
     }
-
+    /**
+     * Prepares the data for insertion into the database.
+     * @param {object} data - The data to prepare.
+     * @returns {object} - An object containing the table name and values.
+     */
     prepareData(data) {
         let table;
         let values = [];
