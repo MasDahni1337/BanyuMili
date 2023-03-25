@@ -46,9 +46,7 @@ class Service {
         if (!this.options.where) {
             this.options.where = {};
         }
-        this.options.where[column] = Sequelize.literal(`${column} = ?`);
-        this.options.replacements = this.options.replacements || [];
-        this.options.replacements.push(value);
+        this.options.where[column] = Sequelize.literal(`${column} = '${value}'`);
         return this;
     }
 
