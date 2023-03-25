@@ -103,9 +103,15 @@ class Service {
         if (this.options.where) {
             const whereKeys = Object.keys(this.options.where);
             whereClause = 'WHERE ';
-            whereClause += whereKeys.map((key) => `${key} = ?`).join(' AND ');
-            whereValues.push(...Object.values(this.options.where));
-        }
+            whereClause += whereKeys.map((key) => {
+              const value = this.options.where[key];
+              if (value === null || value === undefined) {
+                return `${key} IS NULL`;
+              }
+              whereValues.push(value);
+              return `${key} = ?`;
+            }).join(' AND ');
+          }
     
         const joinClause = this.options.join ? this.options.join : '';
         const groupByClause = this.options.groupBy ? `GROUP BY ${this.options.groupBy}` : '';
