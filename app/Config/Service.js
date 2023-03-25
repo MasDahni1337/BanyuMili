@@ -46,7 +46,7 @@ class Service {
         if (!this.options.where) {
             this.options.where = {};
         }
-        this.options.where[column] = value;
+        this.options.where[column] = Sequelize.literal('?'), [value];
         return this;
     }
 
@@ -82,27 +82,39 @@ class Service {
         return record;
     }
 
+    async query(sql, replacements = []) {
+        try {
+            const records = await this.sequelize.query(sql, {
+                type: Sequelize.QueryTypes.SELECT,
+                replacements,
+            });
+            return records;
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
     async getResult() {
-        let query = `SELECT ${this.options.columns ? this.options.columns.join(', ') : '*'} FROM ${this.options.table}`;
-        if (this.options.join) {
-            query += this.options.join;
-        }
+        const columns = this.options.columns ? this.options.columns.join(', ') : '*';
+        const table = this.options.table;
+        let whereClause = '';
+        const whereValues = [];
+
         if (this.options.where) {
-            const whereClause = Object.keys(this.options.where)
-                .map(key => `${key} = ${this.sequelize.escape(this.options.where[key])}`)
-                .join(' AND ');
-            query += ` WHERE ${whereClause}`;
+            whereClause = 'WHERE ';
+            const whereKeys = Object.keys(this.options.where);
+            whereClause += whereKeys.map((key) => `${key} = ?`).join(' AND ');
+            whereValues.push(...Object.values(this.options.where));
         }
-        if (this.options.groupBy) {
-            query += ` GROUP BY ${this.options.groupBy}`;
-        }
-        if (this.options.orderBy) {
-            query += ` ORDER BY ${this.options.orderBy}`;
-        }
+
+        const groupByClause = this.options.groupBy ? `GROUP BY ${this.options.groupBy}` : '';
+        const orderByClause = this.options.orderBy ? `ORDER BY ${this.options.orderBy}` : '';
+        const query = `SELECT ${columns} FROM ${table} ${whereClause} ${groupByClause} ${orderByClause}`;
 
         try {
             const records = await this.sequelize.query(query, {
-                type: Sequelize.QueryTypes.SELECT
+                type: Sequelize.QueryTypes.SELECT,
+                replacements: whereValues,
             });
             return records;
         } catch (error) {
@@ -117,9 +129,9 @@ class Service {
             table,
             values
         } = this.prepareData(data);
+        const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
         if (this.timestamps) {
-            const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
             values.push(now, now);
             this.allowedFields.push('created_at', 'updated_at');
         }
@@ -135,12 +147,12 @@ class Service {
         try {
             const result = await this.sequelize.query(query, {
                 replacements: [filteredData],
-                type: Sequelize.QueryTypes.INSERT
+                type: Sequelize.QueryTypes.INSERT,
             });
 
             if (this.returnType === 'id') {
                 return {
-                    id: result[0]
+                    id: result[0],
                 };
             } else {
                 const [record] = await this.getResult();
@@ -156,8 +168,9 @@ class Service {
             table,
             values
         } = this.prepareData(data);
+        const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
         if (this.timestamps) {
-            const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
             values.push(now);
             this.allowedFields.push('updated_at');
         }
@@ -170,14 +183,14 @@ class Service {
         }
 
         const setClause = Object.keys(filteredData)
-            .map(key => `${key} = ${this.sequelize.escape(filteredData[key])}`)
+            .map((key) => `${key} = ?`)
             .join(', ');
-
-        const query = `UPDATE ${table} SET ${setClause} WHERE ${this.primaryKey} = ${this.sequelize.escape(id)}`;
+        const query = `UPDATE ${table} SET ${setClause} WHERE ${this.primaryKey} = ?`;
 
         try {
             const result = await this.sequelize.query(query, {
-                type: Sequelize.QueryTypes.UPDATE
+                type: Sequelize.QueryTypes.UPDATE,
+                replacements: [...Object.values(filteredData), id],
             });
             if (result[0] === 0) {
                 throw new Error(`Record with id ${id} not found`);
@@ -194,6 +207,7 @@ class Service {
             console.log(error);
         }
     }
+
 
     async delete(id) {
         const query = `DELETE FROM ${this.options.table} WHERE ${this.primaryKey} = ${this.sequelize.escape(id)}`;
@@ -218,7 +232,8 @@ class Service {
                 return record;
             }
         } catch (error) {
-            console.log(error);
+            console.error(`Error deleting record with id ${id}: ${error.message}`);
+            throw error;
         }
     }
 
