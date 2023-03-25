@@ -1,15 +1,17 @@
 const validator = require('validator');
+const Database = require('./Database.js');
 /**
  * Class representing a validation object.
  * @class
  */
-class Validation {
+class Validation extends Database{
   /**
    * Create a validation object.
    * @constructor
    * @param {object} rules - The rules to be used for validation.
    */
     constructor(rules) {
+      super();
       this.rules = rules || {};
     }
      /**
@@ -23,7 +25,7 @@ class Validation {
           if (!this.rules) {
             throw new Error("Validation rules are not defined");
           }
-          Object.keys(this.rules).forEach((key) => {
+          Object.keys(this.rules).forEach(async (key) => {
             const value = req.body[key];
             if (this.rules[key].required && (!value || value.length === 0)) {
               errors.push(`${key} is required`);
@@ -35,6 +37,32 @@ class Validation {
                 errors.push(`${key} must contain only letters and numbers`);
             } else if (this.rules[key].alpha_numeric_space && !validator.isAlphanumeric(value.replace(/\s/g, ""))) {
                 errors.push(`${key} must contain only letters, numbers, and spaces`);
+            } else if (this.rules[key].valid_json && !validator.isJSON(value)) {
+              errors.push(`${key} must be a valid JSON string`);
+            } else if (this.rules[key].valid_url && !validator.isURL(value)) {
+              errors.push(`${key} must be a valid URL`);
+            } else if (this.rules[key].valid_ip && !validator.isIP(value)) {
+              errors.push(`${key} must be a valid IP address`);
+            } else if (this.rules[key].alpha_dash && !validator.isAlpha(value.replace(/-/g, ""))) {
+              errors.push(`${key} must contain only letters, numbers, and dashes`);
+            } else if (this.rules[key].alpha_space && !validator.isAlpha(value.replace(/\s/g, ""))) {
+              errors.push(`${key} must contain only letters and spaces`);
+            } else if (this.rules[key].alpha_numeric_punct && !validator.isAlphanumeric(value.replace(/[^\w\s,.?!]/g, ""))) {
+              errors.push(`${key} must contain only letters, numbers, and punctuation marks`);
+            } else if (this.rules[key].regex_match && !validator.matches(value, this.rules[key].regex_match)) {
+              errors.push(`${key} is not in the correct format`);
+            } else if (this.rules[key].valid_date && !validator.isDate(value)) {
+              errors.push(`${key} must be a valid date`);
+            } else if (this.rules[key].valid_cc_number && !validator.isCreditCard(value)) {
+              errors.push(`${key} must be a valid credit card number`);
+            }else if (rules.is_unique) {
+              const [table, column] = rules.is_unique.split(".");
+              const id = params.id || null;
+              const query = `SELECT COUNT(*) as count FROM ${table} WHERE ${column} = ? ${id ? `AND id != ${id}` : ''}`;
+              const result = await this.query(query, [value]);
+              if (result[0].count > 0) {
+                errors.push(`${key} already exists`);
+              }
             }
           });
           if (errors.length === 0) {
