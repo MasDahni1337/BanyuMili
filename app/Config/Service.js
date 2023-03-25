@@ -99,18 +99,19 @@ class Service {
         const table = this.options.table;
         let whereClause = '';
         const whereValues = [];
-
+    
         if (this.options.where) {
-            whereClause = 'WHERE ';
             const whereKeys = Object.keys(this.options.where);
+            whereClause = 'WHERE ';
             whereClause += whereKeys.map((key) => `${key} = ?`).join(' AND ');
             whereValues.push(...Object.values(this.options.where));
         }
-
+    
+        const joinClause = this.options.join ? this.options.join : '';
         const groupByClause = this.options.groupBy ? `GROUP BY ${this.options.groupBy}` : '';
         const orderByClause = this.options.orderBy ? `ORDER BY ${this.options.orderBy}` : '';
-        const query = `SELECT ${columns} FROM ${table} ${whereClause} ${groupByClause} ${orderByClause}`;
-
+        const query = `SELECT ${columns} FROM ${table} ${joinClause} ${whereClause} ${groupByClause} ${orderByClause}`;
+    
         try {
             const records = await this.sequelize.query(query, {
                 type: Sequelize.QueryTypes.SELECT,
