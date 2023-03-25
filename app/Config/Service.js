@@ -44,12 +44,11 @@ class Service {
 
     where(column, value) {
         if (!this.options.where) {
-          this.options.where = {};
+            this.options.where = {};
         }
-        this.options.where[column] = Sequelize.literal(`${column} = ${this.sequelize.escape(value)}`);
+        this.options.where[column] = value;
         return this;
-      }
-
+    }
     join(table, condition) {
         const joinClause = `JOIN ${table} ON ${condition}`;
         if (!this.options.join) {
@@ -101,9 +100,11 @@ class Service {
         const whereValues = [];
     
         if (this.options.where) {
-            const whereValues = Object.values(this.options.where);
-            whereClause = `WHERE ${whereValues.join(' AND ')}`;
-          }
+            let wherObj = Object.keys(this.options.where)
+                .map(key => `${key} = ${this.sequelize.escape(this.options.where[key])}`)
+                .join(' AND ');
+            whereClause = `WHERE ${wherObj}`;
+        }
     
         const joinClause = this.options.join ? this.options.join : '';
         const groupByClause = this.options.groupBy ? `GROUP BY ${this.options.groupBy}` : '';
@@ -124,6 +125,9 @@ class Service {
             }
         } finally {
             this.options.join = '';
+            this.options.where ='';
+            this.options.groupBy = '';
+            this.options.orderBy = '';
         }
     }
 
