@@ -11,6 +11,7 @@
     - [4.2. Controller](#42-controller)
     - [4.3. Routes](#43-routes)
     - [4.4. Validation](#44-validation)
+      - [4.4.1 Valiation Rules](#441-valiation-rules)
     - [4.5. Example Using Validation on Controller](#45-example-using-validation-on-controller)
     - [4.6. Query Builder](#46-query-builder)
 ##  1. <a name='Overview'></a>Overview
@@ -115,22 +116,55 @@ In the example above, the variable `isValid` instantiated with an object that co
 
 In this case, the `email` property is set to require a value (`required: true`) and to be a valid email address (`is_email: true`). The password property is set to require a value (`required: true`) and to have a minimum length of 8 characters (`minLength: 8`).
 
+#### 4.4.1 Valiation Rules
+
+| Rule              | Description                                               | Example                                           |
+| ----------------- | --------------------------------------------------------- | ------------------------------------------------- |
+| `required`        | Value must be present and not empty.                      | `{ "username": { "required": true } }`            |
+| `minLength`       | Value must be at least the specified length.              | `{ "password": { "minLength": 8 } }`              |
+| `is_email`        | Value must be a valid email address.                      | `{ "email": { "is_email": true } }`               |
+| `alpha_numeric`   | Value must contain only letters and numbers.              | `{ "username": { "alpha_numeric": true } }`       |
+| `alpha_numeric_space` | Value must contain only letters, numbers, and spaces.  | `{ "full_name": { "alpha_numeric_space": true } }` |
+| `valid_json`      | Value must be a valid JSON string.                        | `{ "data": { "valid_json": true } }`              |
+| `valid_url`       | Value must be a valid URL.                                 | `{ "website": { "valid_url": true } }`            |
+| `valid_ip`        | Value must be a valid IP address.                          | `{ "ip_address": { "valid_ip": true } }`          |
+| `alpha_dash`      | Value must contain only letters, numbers, and dashes.      | `{ "slug": { "alpha_dash": true } }`              |
+| `alpha_space`     | Value must contain only letters and spaces.                | `{ "first_name": { "alpha_space": true } }`       |
+| `alpha_numeric_punct` | Value must contain only letters, numbers, and punctuation marks. | `{ "message": { "alpha_numeric_punct": true } }` |
+| `regex_match`     | Value must match the specified regular expression.         | `{ "code": { "regex_match": "/^[A-Z]{3}-[0-9]{3}$/" } }` |
+| `valid_date`      | Value must be a valid date.                                | `{ "dob": { "valid_date": true } }`               |
+| `valid_cc_number` | Value must be a valid credit card number.                  | `{ "cc_number": { "valid_cc_number": true } }`     |
+| `is_unique`       | Value must be unique in the specified table and column.    | `{ "email": { "is_unique": "users.email" } }`     |
+
 ###  4.5. <a name='ExampleUsingValidationonController'></a>Example Using Validation on Controller
 ```javascript
 createUser = async (req, res) => {
       const {
         username,
-        fullname
+        fullname,
+        email,
+        password
       } = req.body;
       const isValid = {
+        username: {
+          required: true,
+          minLength: 6,
+          alpha_numeric: true,
+        },
+        fullname: {
+          required: true,
+          minLength: 6,
+          alpha_numeric_space: true,
+        },
         email: {
           required: true,
-          is_email: true
+          is_email: true,
+          is_unique: 'users.email',
         },
         password: {
           required: true,
-          minLength: 8
-        }
+          minLength: 8,
+        },
 
         const errors = await this.valid(isValid).check()(req, res);
         if (errors && errors.length > 0) {
