@@ -1,6 +1,6 @@
 {
   "name": "banyumili",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "BanyuMili is a JavaScript library for creating web applications. It provides a simple and intuitive API that can help beginners and experienced developers alike to quickly create web applications with ease.",
   "main": "index.js",
   "scripts": {
