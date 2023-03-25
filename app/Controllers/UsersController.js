@@ -7,7 +7,7 @@ class UserController extends BaseController{
     }
 
     createUser = async (req, res) => {
-        const {username, fullname} = req.body;
+        const {username, fullname, email} = req.body;
         const isValid = {
             username: { required: true, alpha_numeric: true },
             fullname: { required: true, alpha_numeric_space: true },
