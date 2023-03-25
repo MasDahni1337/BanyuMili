@@ -46,7 +46,9 @@ class Service {
         if (!this.options.where) {
             this.options.where = {};
         }
-        this.options.where[column] = Sequelize.literal('?'), [value];
+        this.options.where[column] = Sequelize.literal(`${column} = ?`);
+        this.options.replacements = this.options.replacements || [];
+        this.options.replacements.push(value);
         return this;
     }
 
@@ -104,14 +106,11 @@ class Service {
             const whereKeys = Object.keys(this.options.where);
             whereClause = 'WHERE ';
             whereClause += whereKeys.map((key) => {
-              const value = this.options.where[key];
-              if (value === null || value === undefined) {
-                return `${key} IS NULL`;
-              }
-              whereValues.push(value);
-              return `${key} = ?`;
+                const value = this.options.where[key];
+                whereValues.push(value);
+                return value.toString();
             }).join(' AND ');
-          }
+        }
     
         const joinClause = this.options.join ? this.options.join : '';
         const groupByClause = this.options.groupBy ? `GROUP BY ${this.options.groupBy}` : '';
@@ -125,7 +124,11 @@ class Service {
             });
             return records;
         } catch (error) {
-            console.log(error);
+            if (error.message === 'Invalid value literal {val: "??"}') {
+                console.log('Invalid value literal in where clause');
+            } else {
+                console.log(error);
+            }
         } finally {
             this.options.join = '';
         }
