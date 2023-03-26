@@ -202,6 +202,7 @@ class Service {
                 console.log(error);
             }
         } finally {
+            this.options.columns = '';
             this.options.join = '';
             this.options.where ='';
             this.options.groupBy = '';
