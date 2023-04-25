@@ -194,7 +194,11 @@ class Service {
                 type: Sequelize.QueryTypes.SELECT,
                 replacements: whereValues,
             });
-            return records;
+            if (this.returnType === 'object' && records.length === 1) {
+                return records[0];
+            } else {
+                return records;
+            }
         } catch (error) {
             if (error.message === 'Invalid value literal {val: "??"}') {
                 console.log('Invalid value literal in where clause');
@@ -216,44 +220,42 @@ class Service {
      * @returns {Promise<object>} - A Promise that resolves to the inserted record.
      */
     async save(data) {
-        const {
-            table,
-            values
-        } = this.prepareData(data);
+        const { table, values } = this.prepareData(data);
         const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
+    
         if (this.timestamps) {
             values.push(now, now);
             this.allowedFields.push('created_at', 'updated_at');
         }
-
+    
         const filteredData = {};
         for (const field of this.allowedFields) {
             if (field in data) {
                 filteredData[field] = data[field];
             }
         }
-
-        const query = `INSERT INTO ${table} SET ?`;
+        if (this.timestamps) {
+            filteredData.created_at = now;
+            filteredData.updated_at = now;
+        }
+    
+        const keys = Object.keys(filteredData);
+        const vals = Object.values(filteredData);
+        const placeholders = keys.map(key => `${key} = ?`).join(', ');
+    
+        const query = `INSERT INTO ${table} SET ${placeholders}`;
         try {
             const result = await this.sequelize.query(query, {
-                replacements: [filteredData],
+                replacements: vals,
                 type: Sequelize.QueryTypes.INSERT,
             });
-
-            if (this.returnType === 'id') {
-                return {
-                    id: result[0],
-                };
-            } else {
-                const [record] = await this.getResult();
+    
+                const record = await this.where('id', result[0]).getResult();
                 return record;
-            }
         } catch (error) {
             console.log(error);
         }
     }
-
      /**
      * Updates an existing record in the database.
      * @param {object} data - The data to update.
