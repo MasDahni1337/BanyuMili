@@ -93,6 +93,37 @@ class Service {
         return this;
     }
 
+    whereRaw(condition) {
+        if (!this.options.whereRaw) {
+            this.options.whereRaw = {};
+        }
+        this.options.whereRaw = condition;
+        return this;
+    }
+
+    whereBetween(column, start, end) {
+        if (!this.options.whereBetween) {
+            this.options.whereBetween = {};
+        }
+        this.options.whereBetween = `${column} BETWEEN ${this.sequelize.escape(start)} AND ${this.sequelize.escape(end)}`;
+        return this;
+    }
+
+    /**
+     * Add a WHERE IN clause to the query.
+     * @param {string} column - The column to filter by.
+     * @param {Array} values - The values to filter by.
+     * @returns {Service} - The Service instance.
+     */
+    whereIn(column, values) {
+        if (!this.options.whereIn) {
+            this.options.whereIn = [];
+        }
+        this.options.whereIn.push({ column, values });
+        return this;
+    }
+
+
       /**
      * Adds a join clause to the query.
      * @param {string} table - The name of the table to join.
@@ -105,6 +136,25 @@ class Service {
             this.options.join = '';
         }
         this.options.join += ` ${joinClause}`;
+        return this;
+    }
+
+    leftJoin(table, condition) {
+        const joinClause = `LEFT JOIN ${table} ON ${condition}`;
+        if (!this.options.join) {
+            this.options.join = '';
+        }
+        this.options.join += ` ${joinClause}`;
+        return this;
+    }
+
+    /**
+     * Adds a limit clause to the query.
+     * @param {number} limit - The maximum number of records to fetch.
+     * @returns {Service} - The Service instance.
+     */
+    limit(limit) {
+        this.options.limit = limit;
         return this;
     }
 
@@ -177,17 +227,37 @@ class Service {
         let whereClause = '';
         const whereValues = [];
     
-        if (this.options.where) {
-            let wherObj = Object.keys(this.options.where)
-                .map(key => `${key} = ${this.sequelize.escape(this.options.where[key])}`)
-                .join(' AND ');
-            whereClause = `WHERE ${wherObj}`;
-        }
+        if (this.options.where || this.options.whereRaw || this.options.whereBetween || this.options.whereIn) {
+            let whereObj = this.options.where
+                ? Object.keys(this.options.where)
+                      .map(key => `${key} = ${this.sequelize.escape(this.options.where[key])}`)
+                      .join(' AND ')
+                : '';
     
+            if (this.options.whereRaw) {
+                whereObj = whereObj ? `${whereObj} AND ${this.options.whereRaw}` : this.options.whereRaw;
+            }
+    
+            if (this.options.whereBetween) {
+                whereObj = whereObj ? `${whereObj} AND ${this.options.whereBetween}` : this.options.whereBetween;
+            }
+    
+            if (this.options.whereIn) {
+                const whereInClauses = this.options.whereIn.map(condition => {
+                    const escapedValues = condition.values.map(value => this.sequelize.escape(value)).join(', ');
+                    return `${condition.column} IN (${escapedValues})`;
+                }).join(' AND ');
+    
+                whereObj = whereObj ? `${whereObj} AND ${whereInClauses}` : whereInClauses;
+            }
+    
+            whereClause = `WHERE ${whereObj}`;
+        }
         const joinClause = this.options.join ? this.options.join : '';
         const groupByClause = this.options.groupBy ? `GROUP BY ${this.options.groupBy}` : '';
         const orderByClause = this.options.orderBy ? `ORDER BY ${this.options.orderBy}` : '';
-        const query = `SELECT ${columns} FROM ${table} ${joinClause} ${whereClause} ${groupByClause} ${orderByClause}`;
+        const limitClause = this.options.limit ? `LIMIT ${this.options.limit}` : '';
+        const query = `SELECT ${columns} FROM ${table} ${joinClause} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause}`;
     
         try {
             const records = await this.sequelize.query(query, {
@@ -225,7 +295,7 @@ class Service {
     
         if (this.timestamps) {
             values.push(now, now);
-            this.allowedFields.push('created_at', 'updated_at');
+            this.allowedFields.push('createdAt', 'updatedAt');
         }
     
         const filteredData = {};
@@ -235,8 +305,8 @@ class Service {
             }
         }
         if (this.timestamps) {
-            filteredData.created_at = now;
-            filteredData.updated_at = now;
+            filteredData.createdAt = now;
+            filteredData.updatedAt = now;
         }
     
         const keys = Object.keys(filteredData);
@@ -261,30 +331,34 @@ class Service {
      * @param {object} data - The data to update.
      * @returns {Promise<object>} - A Promise that resolves to the result of the update.
      */
-    async update(id, data) {
+     async update(id, data) {
+        if (!data) {
+            throw new Error('Data argument is missing or null');
+        }
+    
         const {
             table,
             values
         } = this.prepareData(data);
         const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
+    
         if (this.timestamps) {
             values.push(now);
-            this.allowedFields.push('updated_at');
+            this.allowedFields.push('updatedAt');
         }
-
+    
         const filteredData = {};
         for (const field of this.allowedFields) {
             if (field in data) {
                 filteredData[field] = data[field];
             }
         }
-
+    
         const setClause = Object.keys(filteredData)
             .map((key) => `${key} = ?`)
             .join(', ');
         const query = `UPDATE ${table} SET ${setClause} WHERE ${this.primaryKey} = ?`;
-
+    
         try {
             const result = await this.sequelize.query(query, {
                 type: Sequelize.QueryTypes.UPDATE,
@@ -311,26 +385,41 @@ class Service {
      * @returns {Promise<object>} - A Promise that resolves to the result of the delete operation.
      */
     async delete(id) {
-        const query = `DELETE FROM ${this.options.table} WHERE ${this.primaryKey} = ${this.sequelize.escape(id)}`;
         try {
-            const result = await this.sequelize.query(query, {
-                type: Sequelize.QueryTypes.DELETE
-            });
-            if (result[0] === 0) {
+            let recordToDelete;
+            if(this.returnType == 'array'){
+                [recordToDelete] = await this.where(this.primaryKey, id).getResult();
+            }else{
+                recordToDelete = await this.where(this.primaryKey, id).getResult();
+            }
+            if (!recordToDelete) {
                 throw new Error(`Record with id ${id} not found`);
             }
+
             if (this.softDelete) {
-                await this.update(id, {
-                    deleted_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+                const result = await this.update(id, {
+                    deletedAt: new Date().toISOString().slice(0, 19).replace('T', ' ')
                 });
-            }
-            if (this.returnType === 'id') {
-                return {
-                    id
-                };
+
+                if (!result) {
+                    throw new Error(`Record with id ${id} not found`);
+                }
             } else {
-                const [record] = await this.getResult();
-                return record;
+                const query = `DELETE FROM ${this.options.table} WHERE ${this.primaryKey} = ?`;
+                const result = await this.sequelize.query(query, {
+                    type: Sequelize.QueryTypes.DELETE,
+                    replacements: [id],
+                });
+
+                if (result === 0) {
+                    throw new Error(`Record with id ${id} not found`);
+                }
+            }
+
+            if (this.returnType === 'array') {
+                return recordToDelete;
+            } else {
+                return recordToDelete;
             }
         } catch (error) {
             console.error(`Error deleting record with id ${id}: ${error.message}`);
