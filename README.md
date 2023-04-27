@@ -227,8 +227,7 @@ class UsersModel extends Model{
     }
 
    ubah(id, data) {
-        this.where('id', id);
-        return this.update(data);
+        return this.update(id, data);
     }
 
    hapus(id) {
