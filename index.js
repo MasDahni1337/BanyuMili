@@ -2,24 +2,11 @@ const express = require("express");
 const Routes = require("./app/Config/Routes.js");
 const path = require("path");
 const bodyParser = require("body-parser");
-const expsesi = require("express-session");
 const cookieParser = require("cookie-parser");
 // method baru
 const app = express();
 const routes = new Routes().defineRoutes();
 process.env.TZ = "Asia/Jakarta";
-
-// session
-app.use(
-    expsesi({
-        secret: 'ijeaAd1UVgpxCflDKNgbj5zfkhx7NKq6tscE55',
-        saveUninitialized: true,
-        resave: false,
-        cookie: {
-            maxAge: 1000 * 60 * 60 * 3
-        }
-    })
-);
 
 // config
 
@@ -50,4 +37,4 @@ app.use(routes);
 //     res.type('txt').send('Not found');
 //   });
 console.log(new Date().toString());
-app.listen(1337, () => console.log('Server Up and Running...'));
+app.listen(3387, () => console.log('Server Up and Running...'));
