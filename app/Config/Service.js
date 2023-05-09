@@ -319,11 +319,16 @@ class Service {
                 replacements: vals,
                 type: Sequelize.QueryTypes.INSERT,
             });
-    
-                const record = await this.where('id', result[0]).getResult();
-                return record;
+                if(result[0] == 0){
+                    const record = await this.where(this.primaryKey, data[this.primaryKey]).getResult();
+                    return record;
+                }else{
+                    const record = await this.where(this.primaryKey, result[0]).getResult();
+                    return record;
+                }
         } catch (error) {
             console.log(error);
+            return false;
         }
     }
      /**
@@ -367,12 +372,11 @@ class Service {
             if (result[0] === 0) {
                 throw new Error(`Record with id ${id} not found`);
             }
-            if (this.returnType === 'id') {
-                return {
-                    id
-                };
+            if (this.returnType === 'array') {
+                const [record] = await this.where('id', id).getResult();
+                return record;
             } else {
-                const [record] = await this.getResult();
+                const record = await this.where('id', id).getResult();
                 return record;
             }
         } catch (error) {
