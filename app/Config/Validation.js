@@ -26,9 +26,12 @@ class Validation extends Database{
             throw new Error("Validation rules are not defined");
           }
           Object.keys(this.rules).forEach(async (key) => {
-            const value = req.body[key];
+            const requestData = {...req.body, ...req.query};
+            const value = requestData[key];
             if (this.rules[key].required && (!value || value.length === 0)) {
               errors.push(`${key} is required`);
+            } else if (this.rules[key].in && !this.rules[key].in.includes(value)) {
+              errors.push(`Invalid value for ${key}, the allowed type is ${this.rules[key].in}`);
             } else if (this.rules[key].minLength && value.length < this.rules[key].minLength) {
               errors.push(`${key} must be at least ${this.rules[key].minLength} characters long`);
             }else if (this.rules[key].is_email && !validator.isEmail(value)) {
@@ -55,8 +58,8 @@ class Validation extends Database{
               errors.push(`${key} must be a valid date`);
             } else if (this.rules[key].valid_cc_number && !validator.isCreditCard(value)) {
               errors.push(`${key} must be a valid credit card number`);
-            }else if (rules.is_unique) {
-              const [table, column] = rules.is_unique.split(".");
+            }else if (this.rules[key].is_unique) {
+              const [table, column] = this.rules.is_unique.split(".");
               const id = params.id || null;
               const query = `SELECT COUNT(*) as count FROM ${table} WHERE ${column} = ? ${id ? `AND id != ${id}` : ''}`;
               const result = await this.query(query, [value]);
@@ -66,7 +69,7 @@ class Validation extends Database{
             }
           });
           if (errors.length === 0) {
-            next();
+            return null;
           } else {
             return errors;
           }
