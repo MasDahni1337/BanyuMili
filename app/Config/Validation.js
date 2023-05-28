@@ -25,7 +25,8 @@ class Validation extends Database{
           if (!this.rules) {
             throw new Error("Validation rules are not defined");
           }
-          Object.keys(this.rules).forEach(async (key) => {
+          const keys = Object.keys(this.rules);
+          for (const key of keys) {
             const requestData = {...req.body, ...req.query};
             const value = requestData[key];
             if (this.rules[key].required && (!value || value.length === 0)) {
@@ -59,15 +60,17 @@ class Validation extends Database{
             } else if (this.rules[key].valid_cc_number && !validator.isCreditCard(value)) {
               errors.push(`${key} must be a valid credit card number`);
             }else if (this.rules[key].is_unique) {
-              const [table, column] = this.rules.is_unique.split(".");
-              const id = params.id || null;
-              const query = `SELECT COUNT(*) as count FROM ${table} WHERE ${column} = ? ${id ? `AND id != ${id}` : ''}`;
+              const [table, column] = this.rules[key].is_unique.split(".");
+              console.log([table, column]);
+              const id = requestData[key] || null; 
+              const query = `SELECT COUNT(*) as count FROM ${table} WHERE ${column} = '${id}'`;
               const result = await this.query(query, [value]);
               if (result[0].count > 0) {
-                errors.push(`${key} already exists`);
+                errors.push(`column ${key}, value: ${id} already exists`);
               }
+              console.log(errors);
             }
-          });
+          }
           if (errors.length === 0) {
             return null;
           } else {

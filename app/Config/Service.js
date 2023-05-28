@@ -279,8 +279,12 @@ class Service {
             this.options.columns = '';
             this.options.join = '';
             this.options.where ='';
+            this.options.whereIn ='';
+            this.options.whereRaw ='';
+            this.options.whereBetween ='';
             this.options.groupBy = '';
             this.options.orderBy = '';
+            this.options.limit = '';
         }
     }
 
