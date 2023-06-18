@@ -20,7 +20,6 @@ class Model extends Database{
         this.setTable(null);
         this.setPrimaryKey('id');
         this.setAllowedFields([]);
-        this.setReturnType('object');
         this.setTimestamps(false);
         this.setSoftDelete(false);
     }

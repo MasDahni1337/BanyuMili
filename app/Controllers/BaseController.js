@@ -15,6 +15,7 @@ class BaseController extends App{
      * @type {Object}
      */
         this.user = new this.UsersModel();
+        this.mahasiswa = new this.MahasiswaModel();
     }
      /**
    * Returns a new instance of the Validation class with specified validation rules.

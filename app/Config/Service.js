@@ -1,6 +1,7 @@
 const {
     Sequelize
 } = require('sequelize');
+const moment = require('moment-timezone');
 /**
  * A service class for building and executing SQL queries using Sequelize with the BanyuMili framework.
  * @class
@@ -15,7 +16,6 @@ class Service {
         this.options = {};
         this.allowedFields = [];
         this.primaryKey = 'id';
-        this.returnType = 'object';
         this.timestamps = false;
         this.softDelete = false;
     }
@@ -51,14 +51,6 @@ class Service {
      */
     setSoftDelete(enabled) {
         this.softDelete = enabled;
-    }
-
-    /**
-     * Set the return type for the query.
-     * @param {string} type - The return type.
-     */
-    setReturnType(type) {
-        this.returnType = type;
     }
 
     /**
@@ -196,9 +188,15 @@ class Service {
      * Executes the query and returns a single record.
      * @returns {Promise<object>} - A Promise that resolves to a single record.
      */
-    async single() {
-        const [record] = await this.getResult();
-        return record;
+    async first() {
+        let data = await this.getResult();
+        console.log(data);
+        if(data != null){
+            const [record] = data;
+            return record;
+        }else{
+            return null;
+        }
     }
 
      /**
@@ -264,10 +262,10 @@ class Service {
                 type: Sequelize.QueryTypes.SELECT,
                 replacements: whereValues,
             });
-            if (this.returnType === 'object' && records.length === 1) {
-                return records[0];
-            } else {
+            if (records.length > 0) {
                 return records;
+            }else {
+                return null;
             }
         } catch (error) {
             if (error.message === 'Invalid value literal {val: "??"}') {
@@ -276,15 +274,8 @@ class Service {
                 console.log(error);
             }
         } finally {
-            this.options.columns = '';
-            this.options.join = '';
-            this.options.where ='';
-            this.options.whereIn ='';
-            this.options.whereRaw ='';
-            this.options.whereBetween ='';
-            this.options.groupBy = '';
-            this.options.orderBy = '';
-            this.options.limit = '';
+            const optionKeys = ['columns', 'join', 'where', 'whereIn', 'whereRaw', 'whereBetween', 'groupBy', 'orderBy', 'limit'];
+            optionKeys.forEach(key => this.options[key] = '');
         }
     }
 
@@ -295,7 +286,8 @@ class Service {
      */
     async save(data) {
         const { table, values } = this.prepareData(data);
-        const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        // const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        const now = moment().tz(process.env.TZ).format("YYYY-MM-DD[T]HH:mm:ss");
     
         if (this.timestamps) {
             values.push(now, now);
@@ -349,7 +341,7 @@ class Service {
             table,
             values
         } = this.prepareData(data);
-        const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        const now = moment().tz(process.env.TZ).format("YYYY-MM-DD[T]HH:mm:ss");
     
         if (this.timestamps) {
             values.push(now);
@@ -361,6 +353,9 @@ class Service {
             if (field in data) {
                 filteredData[field] = data[field];
             }
+        }
+        if (this.timestamps) {
+            filteredData.updatedAt = now;
         }
     
         const setClause = Object.keys(filteredData)
@@ -376,13 +371,8 @@ class Service {
             if (result[0] === 0) {
                 throw new Error(`Record with id ${id} not found`);
             }
-            if (this.returnType === 'array') {
-                const [record] = await this.where('id', id).getResult();
-                return record;
-            } else {
-                const record = await this.where('id', id).getResult();
-                return record;
-            }
+            const record = await this.where('id', id).getResult();
+            return record;
         } catch (error) {
             console.log(error);
         }
@@ -394,27 +384,24 @@ class Service {
      */
     async delete(id) {
         try {
-            let recordToDelete;
-            if(this.returnType == 'array'){
-                [recordToDelete] = await this.where(this.primaryKey, id).getResult();
-            }else{
-                recordToDelete = await this.where(this.primaryKey, id).getResult();
-            }
-            if (!recordToDelete) {
+            let recordToDelete = await this.where(this.primaryKey, id).first();
+            if (recordToDelete == null) {
                 throw new Error(`Record with id ${id} not found`);
             }
+            const now = moment().tz(process.env.TZ).format("YYYY-MM-DD[T]HH:mm:ss");
 
             if (this.softDelete) {
-                const result = await this.update(id, {
-                    deletedAt: new Date().toISOString().slice(0, 19).replace('T', ' ')
-                });
-
-                if (!result) {
+                this.allowedFields.push('deletedAt');
+                let isData = {
+                    deletedAt: now
+                }
+                let result = await this.update(id, isData);
+                if (result == null) {
                     throw new Error(`Record with id ${id} not found`);
                 }
             } else {
                 const query = `DELETE FROM ${this.options.table} WHERE ${this.primaryKey} = ?`;
-                const result = await this.sequelize.query(query, {
+                let result = await this.sequelize.query(query, {
                     type: Sequelize.QueryTypes.DELETE,
                     replacements: [id],
                 });
@@ -423,12 +410,7 @@ class Service {
                     throw new Error(`Record with id ${id} not found`);
                 }
             }
-
-            if (this.returnType === 'array') {
-                return recordToDelete;
-            } else {
-                return recordToDelete;
-            }
+            return recordToDelete;
         } catch (error) {
             console.error(`Error deleting record with id ${id}: ${error.message}`);
             throw error;

@@ -14,25 +14,6 @@ class UsersModel extends Model{
         this.setSoftDelete(false);
     }
 
-   getMember(){
-        let hasil = this.getResult();
-        return hasil;
-    }
-
-   simpan(data) {
-        return this.save(data);
-    }
-
-   ubah(id, data) {
-        this.where('id', id);
-        return this.update(data);
-    }
-
-   hapus(id) {
-        this.where('id', id);
-        return this.delete();
-    }
-
 }
 
 module.exports = UsersModel;

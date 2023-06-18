@@ -13,6 +13,7 @@ class Routes extends App {
   constructor() {
     super();
     this.user = new this.UsersController();
+    this.callback = new this.CallbackController();
   }
   /**
    * Defines the routes for the API.
@@ -22,7 +23,6 @@ class Routes extends App {
     const routes = express.Router();
 
     routes.get("/test", this.user.testUser.bind(this.user));
-    routes.post("/testPost", this.user.createUser.bind(this.user));
 
     return routes;
   }

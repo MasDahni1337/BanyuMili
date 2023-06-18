@@ -231,8 +231,7 @@ class UsersModel extends Model{
     }
 
    hapus(id) {
-        this.where('id', id);
-        return this.delete();
+        return this.delete(id);
     }
     
 }

@@ -24,7 +24,12 @@ class Database extends Service {
       username: 'username',
       password: 'password',
       host: 'localhost',
-      dialect: 'mysql'
+      dialect: 'mysql',
+      dialectOptions: {
+        socketPath: "/var/run/mysqld/mysqld.sock",
+        useUTC: false
+      },
+      timezone: '+08:00'
     };
     super(options);
   }
