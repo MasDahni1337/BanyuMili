@@ -9,7 +9,6 @@ class UsersModel extends Model{
         this.setTable('users');
         this.setPrimaryKey('id');
         this.setAllowedFields([]);
-        this.setReturnType('object');
         this.setTimestamps(true);
         this.setSoftDelete(false);
     }
