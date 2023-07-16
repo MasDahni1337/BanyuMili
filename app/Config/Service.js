@@ -141,6 +141,18 @@ class Service {
     }
 
     /**
+     * Adds a raw join clause to the query.
+     * @param {string} rawJoin - The raw SQL for the join.
+     * @returns {Service} - The Service instance.
+     */
+    joinRaw(rawJoin) {
+        if (!this.options.joinRaw) {
+            this.options.joinRaw = '';
+        }
+        this.options.joinRaw += `JOIN ${rawJoin}`;
+        return this;
+    }
+    /**
      * Adds a limit clause to the query.
      * @param {number} limit - The maximum number of records to fetch.
      * @returns {Service} - The Service instance.
@@ -203,10 +215,29 @@ class Service {
      * Executes the querys.
      * @returns {Promise<object[]>}.
      */
+     async getQueryType(sql) {
+        const selectRegex = /^SELECT/i;
+        const updateRegex = /^UPDATE/i;
+        const deleteRegex = /^DELETE/i;
+        const insertRegex = /^INSERT/i;
+      
+        if (selectRegex.test(sql)) {
+          return Sequelize.QueryTypes.SELECT;
+        } else if (updateRegex.test(sql)) {
+          return Sequelize.QueryTypes.UPDATE;
+        } else if (deleteRegex.test(sql)) {
+          return Sequelize.QueryTypes.DELETE;
+        } else if (insertRegex.test(sql)) {
+          return Sequelize.QueryTypes.INSERT;
+        } else {
+          return 'UNKNOWN';
+        }
+      }
     async query(sql, replacements = []) {
+        const queryType = await this.getQueryType(sql);
         try {
             const records = await this.sequelize.query(sql, {
-                type: Sequelize.QueryTypes.SELECT,
+                type: queryType,
                 replacements,
             });
             return records;
@@ -252,10 +283,11 @@ class Service {
             whereClause = `WHERE ${whereObj}`;
         }
         const joinClause = this.options.join ? this.options.join : '';
+        const joinRawClause = this.options.joinRaw ? this.options.joinRaw : '';
         const groupByClause = this.options.groupBy ? `GROUP BY ${this.options.groupBy}` : '';
         const orderByClause = this.options.orderBy ? `ORDER BY ${this.options.orderBy}` : '';
         const limitClause = this.options.limit ? `LIMIT ${this.options.limit}` : '';
-        const query = `SELECT ${columns} FROM ${table} ${joinClause} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause}`;
+        const query = `SELECT ${columns} FROM ${table} ${joinClause} ${joinRawClause} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause}`;
     
         try {
             const records = await this.sequelize.query(query, {
@@ -274,7 +306,8 @@ class Service {
                 console.log(error);
             }
         } finally {
-            const optionKeys = ['columns', 'join', 'where', 'whereIn', 'whereRaw', 'whereBetween', 'groupBy', 'orderBy', 'limit'];
+            const optionKeys = ['columns', 'join', 'joinRaw', 'where', 'whereIn', 'whereRaw', 'whereBetween', 'groupBy', 'orderBy', 'limit'];
+            // const optionKeys = ['columns', 'join', 'where', 'whereIn', 'whereRaw', 'whereBetween', 'groupBy', 'orderBy', 'limit'];
             optionKeys.forEach(key => this.options[key] = '');
         }
     }
@@ -441,4 +474,4 @@ class Service {
     }
 }
 
-module.exports = Service;
+module.exports = Service;s
