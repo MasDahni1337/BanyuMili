@@ -357,7 +357,7 @@ class Service {
                 }
         } catch (error) {
             console.log(error);
-            return false;
+            throw new Error(`An error occurred while executing the query: ${error.message}`);
         }
     }
      /**
@@ -408,6 +408,7 @@ class Service {
             return record;
         } catch (error) {
             console.log(error);
+            throw new Error(`An error occurred while executing the query: ${error.message}`);
         }
     }
 
@@ -446,7 +447,7 @@ class Service {
             return recordToDelete;
         } catch (error) {
             console.error(`Error deleting record with id ${id}: ${error.message}`);
-            throw error;
+            throw new Error(`An error occurred while executing the query: ${error.message}`);
         }
     }
     /**
@@ -474,4 +475,4 @@ class Service {
     }
 }
 
-module.exports = Service;s
+module.exports = Service;

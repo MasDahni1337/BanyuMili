@@ -23,7 +23,6 @@ class Routes extends App {
     const routes = express.Router();
 
     routes.get("/test", this.user.testUser.bind(this.user));
-
     return routes;
   }
 }
