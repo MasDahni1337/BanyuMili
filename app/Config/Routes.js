@@ -13,7 +13,6 @@ class Routes extends App {
   constructor() {
     super();
     this.user = new this.UsersController();
-    this.callback = new this.CallbackController();
   }
   /**
    * Defines the routes for the API.
