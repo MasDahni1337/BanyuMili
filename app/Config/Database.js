@@ -1,4 +1,4 @@
-const mysql = require('mysql2/promise');
+const os = require('os');
 const Service = require('./Service.js');
 /**
  * Represents a database service.
@@ -26,11 +26,14 @@ class Database extends Service {
       host: 'localhost',
       dialect: 'mysql',
       dialectOptions: {
-        socketPath: "/var/run/mysqld/mysqld.sock",
         useUTC: false
       },
-      timezone: '+08:00'
+      timezone: '+07:00'
     };
+
+    if (os.platform() === 'linux' || os.platform() === 'darwin') {
+      options.dialectOptions.socketPath = "/var/run/mysqld/mysqld.sock";
+    }
     super(options);
   }
 }
