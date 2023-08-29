@@ -101,6 +101,14 @@ class Service {
         return this;
     }
 
+    whereLike(column, value) {
+        if (!this.options.whereLike) {
+            this.options.whereLike = {};
+        }
+        this.options.whereLike[column] = value;
+        return this;
+    }
+
     /**
      * Add a WHERE IN clause to the query.
      * @param {string} column - The column to filter by.
@@ -255,8 +263,7 @@ class Service {
         const table = this.options.table;
         let whereClause = '';
         const whereValues = [];
-    
-        if (this.options.where || this.options.whereRaw || this.options.whereBetween || this.options.whereIn) {
+        if (this.options.where || this.options.whereRaw || this.options.whereBetween || this.options.whereIn || this.options.whereLike) {
             let whereObj = this.options.where
                 ? Object.keys(this.options.where)
                       .map(key => `${key} = ${this.sequelize.escape(this.options.where[key])}`)
@@ -278,6 +285,14 @@ class Service {
                 }).join(' AND ');
     
                 whereObj = whereObj ? `${whereObj} AND ${whereInClauses}` : whereInClauses;
+            }
+    
+            if (this.options.whereLike) {
+                const whereLikeClauses = Object.keys(this.options.whereLike)
+                    .map(key => `${key} LIKE ${this.sequelize.escape(`%${this.options.whereLike[key]}%`)}`)
+                    .join(' AND ');
+    
+                whereObj = whereObj ? `${whereObj} AND ${whereLikeClauses}` : whereLikeClauses;
             }
     
             whereClause = `WHERE ${whereObj}`;
@@ -306,8 +321,7 @@ class Service {
                 console.log(error);
             }
         } finally {
-            const optionKeys = ['columns', 'join', 'joinRaw', 'where', 'whereIn', 'whereRaw', 'whereBetween', 'groupBy', 'orderBy', 'limit'];
-            // const optionKeys = ['columns', 'join', 'where', 'whereIn', 'whereRaw', 'whereBetween', 'groupBy', 'orderBy', 'limit'];
+            const optionKeys = ['columns', 'join', 'joinRaw', 'where', 'whereIn', 'whereRaw', 'whereBetween', 'groupBy', 'orderBy', 'limit', 'whereLike'];
             optionKeys.forEach(key => this.options[key] = '');
         }
     }
