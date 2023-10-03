@@ -87,9 +87,9 @@ class Service {
 
     whereRaw(condition) {
         if (!this.options.whereRaw) {
-            this.options.whereRaw = {};
+            this.options.whereRaw = [];
         }
-        this.options.whereRaw = condition;
+        this.options.whereRaw.push(condition);
         return this;
     }
 
@@ -98,14 +98,6 @@ class Service {
             this.options.whereBetween = {};
         }
         this.options.whereBetween = `${column} BETWEEN ${this.sequelize.escape(start)} AND ${this.sequelize.escape(end)}`;
-        return this;
-    }
-
-    whereLike(column, value) {
-        if (!this.options.whereLike) {
-            this.options.whereLike = {};
-        }
-        this.options.whereLike[column] = value;
         return this;
     }
 
@@ -123,6 +115,13 @@ class Service {
         return this;
     }
 
+    whereLike(column, value) {
+        if (!this.options.whereLike) {
+            this.options.whereLike = {};
+        }
+        this.options.whereLike[column] = value;
+        return this;
+    }
 
       /**
      * Adds a join clause to the query.
@@ -271,7 +270,8 @@ class Service {
                 : '';
     
             if (this.options.whereRaw) {
-                whereObj = whereObj ? `${whereObj} AND ${this.options.whereRaw}` : this.options.whereRaw;
+                const whereRawClause = this.options.whereRaw.join(' AND ');
+                whereObj = whereObj ? `${whereObj} AND ${whereRawClause}` : whereRawClause;
             }
     
             if (this.options.whereBetween) {
