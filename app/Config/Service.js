@@ -2,6 +2,7 @@ const {
     Sequelize
 } = require('sequelize');
 const moment = require('moment-timezone');
+const redis = require('redis');
 /**
  * A service class for building and executing SQL queries using Sequelize with the BanyuMili framework.
  * @class
@@ -13,6 +14,7 @@ class Service {
      */
     constructor(options) {
         this.sequelize = new Sequelize(options.database, options.username, options.password, options);
+        this.client = redis.createClient();
         this.options = {};
         this.allowedFields = [];
         this.primaryKey = 'id';
@@ -303,13 +305,33 @@ class Service {
         const orderByClause = this.options.orderBy ? `ORDER BY ${this.options.orderBy}` : '';
         const limitClause = this.options.limit ? `LIMIT ${this.options.limit}` : '';
         const query = `SELECT ${columns} FROM ${table} ${joinClause} ${joinRawClause} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause}`;
+        const cacheKey = `query:${query}`;
     
         try {
+            if (this.options.redis) {
+                const cachedResult = await new Promise((resolve, reject) => {
+                    this.client.get(cacheKey, (error, result) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve(result);
+                        }
+                    });
+                });
+    
+                if (cachedResult) {
+                    return JSON.parse(cachedResult);
+                }
+            }
+            
             const records = await this.sequelize.query(query, {
                 type: Sequelize.QueryTypes.SELECT,
                 replacements: whereValues,
             });
             if (records.length > 0) {
+                if(this.options.redis){
+                    this.client.setex(cacheKey, this.options.cacheTime, JSON.stringify(records));
+                }
                 return records;
             }else {
                 return null;
@@ -366,6 +388,10 @@ class Service {
                     const record = await this.where(this.primaryKey, data[this.primaryKey]).getResult();
                     return record;
                 }else{
+                    if (this.options.redis){
+                        const cacheKey = `query:${query}`;
+                        this.client.del(cacheKey);
+                    }
                     const record = await this.where(this.primaryKey, result[0]).getResult();
                     return record;
                 }
@@ -417,9 +443,14 @@ class Service {
             });
             if (result[0] === 0) {
                 throw new Error(`Record with id ${id} not found`);
+            }else{
+                if (this.options.redis){
+                    const cacheKey = `query:${query}`;
+                    this.client.del(cacheKey);
+                }
+                const record = await this.where('id', id).getResult();
+                return record;
             }
-            const record = await this.where('id', id).getResult();
-            return record;
         } catch (error) {
             console.log(error);
             throw new Error(`An error occurred while executing the query: ${error.message}`);
@@ -453,6 +484,10 @@ class Service {
                     type: Sequelize.QueryTypes.DELETE,
                     replacements: [id],
                 });
+                if (this.options.redis && !this.softDelete && result === 1) {
+                    const cacheKey = `query:${query}`;
+                    this.client.del(cacheKey);
+                }
 
                 if (result === 0) {
                     throw new Error(`Record with id ${id} not found`);
