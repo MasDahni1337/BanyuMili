@@ -28,7 +28,9 @@ class Database extends Service {
       dialectOptions: {
         useUTC: false
       },
-      timezone: '+07:00'
+      timezone: '+07:00',
+      redis:true,
+      cacheTime: 3600,
     };
 
     if (os.platform() === 'linux' || os.platform() === 'darwin') {
