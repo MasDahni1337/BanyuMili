@@ -132,20 +132,18 @@ class Service {
      * @returns {Service} - The Service instance.
      */
     join(table, condition) {
-        const joinClause = `JOIN ${table} ON ${condition}`;
         if (!this.options.join) {
-            this.options.join = '';
+            this.options.join = [];
         }
-        this.options.join += ` ${joinClause}`;
+        this.options.join.push({ type: 'JOIN', table, condition });
         return this;
     }
 
     leftJoin(table, condition) {
-        const joinClause = `LEFT JOIN ${table} ON ${condition}`;
         if (!this.options.join) {
-            this.options.join = '';
+            this.options.join = [];
         }
-        this.options.join += ` ${joinClause}`;
+        this.options.join.push({ type: 'LEFT JOIN', table, condition });
         return this;
     }
 
@@ -154,11 +152,11 @@ class Service {
      * @param {string} rawJoin - The raw SQL for the join.
      * @returns {Service} - The Service instance.
      */
-    joinRaw(rawJoin) {
+    joinRaw(key, rawJoin) {
         if (!this.options.joinRaw) {
-            this.options.joinRaw = '';
+            this.options.joinRaw = [];
         }
-        this.options.joinRaw += `JOIN ${rawJoin}`;
+        this.options.joinRaw.push({ key, rawJoin });
         return this;
     }
     /**
@@ -252,6 +250,7 @@ class Service {
             return records;
         } catch (error) {
             console.log(error);
+            throw new Error(`An error occurred while executing the query: ${error.message}`);
         }
     }
 
@@ -299,8 +298,10 @@ class Service {
     
             whereClause = `WHERE ${whereObj}`;
         }
-        const joinClause = this.options.join ? this.options.join : '';
-        const joinRawClause = this.options.joinRaw ? this.options.joinRaw : '';
+        const joinClause = this.options.join ? this.options.join.map(join => `${join.type} ${join.table} ON ${join.condition}`).join(' ') : '';
+        const joinRawClause = this.options.joinRaw
+        ? this.options.joinRaw.map(join => `${join.key} ${join.rawJoin}`).join(' ')
+        : '';
         const groupByClause = this.options.groupBy ? `GROUP BY ${this.options.groupBy}` : '';
         const orderByClause = this.options.orderBy ? `ORDER BY ${this.options.orderBy}` : '';
         const limitClause = this.options.limit ? `LIMIT ${this.options.limit}` : '';
@@ -330,7 +331,7 @@ class Service {
             });
             if (records.length > 0) {
                 if(this.options.redis){
-                    this.client.setex(cacheKey, this.options.cacheTime, JSON.stringify(records));
+                    this.client.setEx(cacheKey, this.options.cacheTime, JSON.stringify(records));
                 }
                 return records;
             }else {
@@ -342,6 +343,7 @@ class Service {
             } else {
                 console.log(error);
             }
+            throw new Error(`An error occurred while executing the query: ${error.message}`);
         } finally {
             const optionKeys = ['columns', 'join', 'joinRaw', 'where', 'whereIn', 'whereRaw', 'whereBetween', 'groupBy', 'orderBy', 'limit', 'whereLike'];
             optionKeys.forEach(key => this.options[key] = '');
@@ -356,7 +358,7 @@ class Service {
     async save(data) {
         const { table, values } = this.prepareData(data);
         // const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-        const now = moment().tz(process.env.TZ).format("YYYY-MM-DD[T]HH:mm:ss");
+        const now = moment().tz(process.env.TZ).format("YYYY-MM-DD[T]HH:mm:ss.SSS");
     
         if (this.timestamps) {
             values.push(now, now);
@@ -414,7 +416,7 @@ class Service {
             table,
             values
         } = this.prepareData(data);
-        const now = moment().tz(process.env.TZ).format("YYYY-MM-DD[T]HH:mm:ss");
+        const now = moment().tz(process.env.TZ).format("YYYY-MM-DD[T]HH:mm:ss.SSS");
     
         if (this.timestamps) {
             values.push(now);
@@ -467,7 +469,7 @@ class Service {
             if (recordToDelete == null) {
                 throw new Error(`Record with id ${id} not found`);
             }
-            const now = moment().tz(process.env.TZ).format("YYYY-MM-DD[T]HH:mm:ss");
+            const now = moment().tz(process.env.TZ).format("YYYY-MM-DD[T]HH:mm:ss.SSS");
 
             if (this.softDelete) {
                 this.allowedFields.push('deletedAt');
