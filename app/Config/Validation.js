@@ -61,11 +61,10 @@ class Validation extends Database{
               errors.push(`${key} must be a valid credit card number`);
             }else if (this.rules[key].is_unique) {
               const [table, column] = this.rules[key].is_unique.split(".");
-              console.log([table, column]);
               const id = requestData[key] || null; 
               const query = `SELECT COUNT(*) as count FROM ${table} WHERE ${column} = '${id}'`;
-              const result = await this.query(query, [value]);
-              if (result[0].count > 0) {
+              const result = await this.raw(query);
+              if (result[0][0].count > 0) {
                 errors.push(`column ${key}, value: ${id} already exists`);
               }
               console.log(errors);

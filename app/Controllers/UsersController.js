@@ -2,7 +2,7 @@ const BaseController = require("./BaseController.js");
 class UserController extends BaseController{
 
     testUser = async (req, res) => {
-        let data = await this.user.getMember();
+        let data = await this.user.banyu().BaseControllerwhere('username', 'dahnikun').getResult();
         console.log(data);
     }
 
