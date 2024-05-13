@@ -1,8 +1,7 @@
 const knex = require('knex');
 const moment = require('moment-timezone');
-const {
-    v4: uuidv4
-  } = require('uuid');
+const path = require("path");
+const fs = require("fs");
 class Service {
     constructor(options) {
         this.knex = knex(options);
@@ -47,15 +46,24 @@ class Service {
         return this.knex.raw(column);
     }
 
-    async reportError(error){
+    async reportError(error) {
         const now = moment().tz(process.env.TZ).format("YYYY-MM-DD[T]HH:mm:ss.SSS");
-        const errorVals = {
-            id: uuidv4(),
-            message: JSON.stringify(error),
-            createdAt: now,
-            updatedAt: now
-        };
-        await this.knex("logError").insert(errorVals);
+        console.log(now);
+        const dateToday = moment().format("YYYY-MM-DD");
+        const fileName = `error-${dateToday}.log`;
+        const logsDirectory = path.join(__dirname, '..', '..', 'errors');
+        console.log("cokk", error);
+        const logMessage = `[${now}] Error: ${error.message}, Stack{${error.stack}}\n`;
+        if (!fs.existsSync(logsDirectory)) {
+            fs.mkdirSync(logsDirectory, { recursive: true });
+        }
+
+        const logPath = path.join(logsDirectory, fileName);
+        fs.appendFileSync(logPath, logMessage, err => {
+            if (err) {
+                console.error(`Error writing to log file: ${err.message}`);
+            }
+        });
     }
 
     async save(data) {

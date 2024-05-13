@@ -6,9 +6,14 @@ const Model = require("../Config/Model.js")
 class UsersModel extends Model{
     constructor() {
         super(); 
-        this.setTable('users');
+        this.setTable('product');
         this.setPrimaryKey('id');
-        this.setAllowedFields([]);
+        this.setAllowedFields([
+            'name',
+            'slug',
+            'price',
+            'foto'
+        ]);
         this.setTimestamps(true);
         this.setSoftDelete(false);
     }

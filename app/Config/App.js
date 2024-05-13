@@ -22,26 +22,39 @@ class App {
    */
   loadController() {
     const controlDir = path.resolve(__dirname, "..", "Controllers");
-    fs.readdirSync(controlDir).forEach((file) => {
-      if (file.endsWith(".js")) {
-        const control = require(path.join(controlDir, file));
-        const controlName = path.basename(file, ".js");
-        this[controlName] = control;
-      }
-    });
+    const loadFiles = (dir) => {
+      fs.readdirSync(dir).forEach((item) => {
+          const fullPath = path.join(dir, item);
+          if (fs.statSync(fullPath).isDirectory()) {
+              loadFiles(fullPath);
+          } else if (item.endsWith('.js')) {
+              const control = require(fullPath);
+              const controlName = path.basename(item, '.js');
+              this[controlName] = control;
+          }
+      });
+    };
+    loadFiles(controlDir);
   }
    /**
    * Loads all the models from the Models directory and adds them to the App instance.
    */
   loadModels() {
     const modelsDir = path.resolve(__dirname, "..", "Models");
-    fs.readdirSync(modelsDir).forEach((file) => {
-      if (file.endsWith(".js")) {
-        const model = require(path.join(modelsDir, file));
-        const modelName = path.basename(file, ".js");
-        this[modelName] = model;
-      }
-    });
+    const loadFiles = (dir) => {
+      fs.readdirSync(dir).forEach((item) => {
+          const fullPath = path.join(dir, item);
+          if (fs.statSync(fullPath).isDirectory()) {
+              loadFiles(fullPath);
+          } else if (item.endsWith('.js')) {
+              const model = require(fullPath);
+              const modelName = path.basename(item, '.js');
+              this[modelName] = model;
+          }
+      });
+  };
+
+  loadFiles(modelsDir);
   }
   
   /**

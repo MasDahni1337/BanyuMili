@@ -1,5 +1,6 @@
 const express = require("express");
 const App = require("../Config/App.js");
+const group = require("routergroup");
 /**
  * Express Routes class for defining API routes.
  * @class
@@ -8,11 +9,12 @@ const App = require("../Config/App.js");
 class Routes extends App {
   /**
    * Constructs a new Routes object.
-   * Creates a new instance of the UsersController.
+   * Creates a new instance of the UsersController and HomeController.
    */
   constructor() {
     super();
     this.user = new this.UsersController();
+    this.home = new this.HomeController();
   }
   /**
    * Defines the routes for the API.
@@ -20,8 +22,10 @@ class Routes extends App {
    */
   defineRoutes() {
     const routes = express.Router();
-
-    routes.get("/test", this.user.testUser.bind(this.user));
+    routes.get("/", this.home.index.bind(this.home));
+    routes.use(group("/banyumili", routes => {
+      routes.get("/welcome", this.home.test.bind(this.home));
+    }));
     return routes;
   }
 }
