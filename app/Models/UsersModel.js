@@ -4,8 +4,8 @@ const Model = require("../Config/Model.js")
  * @extends Model
  */
 class UsersModel extends Model{
-    constructor() {
-        super(); 
+    constructor(configName = 'default'){
+        super(configName);
         this.setTable('product');
         this.setPrimaryKey('id');
         this.setAllowedFields([

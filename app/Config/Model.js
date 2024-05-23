@@ -15,8 +15,8 @@ class Model extends Database{
      * - timestamps to false
      * - softDelete to false
      */
-    constructor(){
-        super();
+      constructor(configName = 'default'){
+        super(configName);
         this.setTable(null);
         this.setPrimaryKey('id');
         this.setAllowedFields([]);

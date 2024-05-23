@@ -1,27 +1,21 @@
 const os = require('os');
 const Service = require('./Service.js');
+
 /**
  * Represents a database service.
  * @class
  * @extends Service
  */
-
 class Database extends Service {
   /**
-   * Creates an instance of Database.
+   * Default configurations for the database.
+   * @type {Object}
    * @memberof Database
    */
-  constructor() {
-    /**
-     * change host with your host
-     * change user with your username mysql
-     * change password with your password mysql
-     * change database with your database
-     * @type {Object}
-     */
-    const options = {
+  static configurations = {
+    default: {
       client: 'mysql2',
-      debug: false,
+      debug: true,
       connection: {
         host: 'localhost',
         user: 'username',
@@ -37,12 +31,40 @@ class Database extends Service {
         createTimeoutMillis: 10000,
         idleTimeoutMillis: 120000,
         reapIntervalMillis: 10000,
-      }
-    };
-    if (os.platform() === 'linux' || os.platform() === 'darwin') {
-      options.connection.socketPath = "/var/run/mysqld/mysqld.sock";
-    }
+      },
+    },
+    namedOption: {
+      client: 'mysql2',
+      debug: true,
+      connection: {
+        host: 'localhost',
+        user: 'username',
+        password: 'password',
+        database: 'database',
+        timezone: '+07:00',
+        charset: 'utf8',
+      },
+      pool: {
+        min: 0,
+        max: 7,
+        acquireTimeoutMillis: 10000,
+        createTimeoutMillis: 10000,
+        idleTimeoutMillis: 120000,
+        reapIntervalMillis: 10000,
+      },
+    },
+  };
 
+  /**
+   * Creates an instance of Database.
+   * @param {string} [optionName='default'] - The configuration option to use.
+   * @memberof Database
+   */
+  constructor(optionName = 'default') {
+    const options = Database.configurations[optionName];
+    if (os.platform() === 'linux' || os.platform() === 'darwin') {
+      options.connection.socketPath = '/var/run/mysqld/mysqld.sock';
+    }
     super(options);
   }
 }
