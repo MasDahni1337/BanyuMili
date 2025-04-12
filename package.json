@@ -10,7 +10,7 @@
     "BanyuMili",
     "Framework"
   ],
-  "author": "Dahni Eko Setiawan",
+  "author": "yourname",
   "license": "MIT",
   "dependencies": {
     "body-parser": "^1.20.2",

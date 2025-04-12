@@ -1,29 +1,25 @@
-const App = require("../Config/App.js");
+const Controller = require("./Controller");
+const Validation = require("../Config/Validation.js");
 /**
- * BaseController class.
- * @extends App
+ * BaseController provides common functionality shared across all controllers.
+ * Inherits from the main Controller class.
+ *
+ * @extends Controller
  */
-class BaseController extends App{
-    /**
-   * Creates an instance of BaseController.
-   * @memberof BaseController
-   */
+class BaseController extends Controller {
     constructor() {
         super();
-        /**
-     * Simple Create new object just initiation with new this.YourModel()
-     * @type {Object}
-     */
-        this.user = new this.UsersModel();
     }
-     /**
-   * Returns a new instance of the Validation class with specified validation rules.
-   * @param {Object} rules - Validation rules to apply.
-   * @returns {Object} - A new instance of the Validation class.
-   */
+
+    /**
+     * Create a new Validation instance with specified rules.
+     *
+     * @param {Object} rules - Validation rules.
+     * @returns {Validation} Validation instance.
+     */
     valid(rules) {
-        return new this.Validation(rules);
-    };
+        return new Validation(rules);
+    }
 }
 
 module.exports = BaseController;

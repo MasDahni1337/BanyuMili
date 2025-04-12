@@ -1,31 +1,31 @@
 const express = require("express");
-const App = require("../Config/App.js");
 const group = require("routergroup");
+const Routing = require("./Routing");
+
 /**
- * Express Routes class for defining API routes.
+ * Routes class for defining API endpoints.
+ * Extends the base Routing class to organize API route definitions.
+ *
  * @class
- * @extends App
+ * @extends Routing
  */
-class Routes extends App {
+class Routes extends Routing {
   /**
-   * Constructs a new Routes object.
-   * Creates a new instance of the UsersController and HomeController.
-   */
-  constructor() {
-    super();
-    this.user = new this.UsersController();
-    this.home = new this.HomeController();
-  }
-  /**
-   * Defines the routes for the API.
-   * @returns {Routes} An instance of the Express router containing the defined routes.
+   * Register API routes.
+   *
+   * @returns {express.Router} Configured Express router instance with all defined routes.
    */
   defineRoutes() {
     const routes = express.Router();
+
+    // Root Route
     routes.get("/", this.home.index.bind(this.home));
-    routes.use(group("/banyumili", routes => {
-      routes.get("/welcome", this.home.test.bind(this.home));
+
+    // Grouped Routes
+    routes.use(group("/banyumili", (router) => {
+      router.get("/welcome", this.home.test.bind(this.home));
     }));
+
     return routes;
   }
 }
